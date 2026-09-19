@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- archamp's mark: seven bars of the spectrum analyser the player draws, one
+     for each letter of its name, in the colours base-2.91.wsz's VISCOLOR.TXT
+     gives it - green at the floor through yellow to red at the top - each
+     under the peak that fell from where it reached.
+
+     It is what archamp draws, not what Winamp's logo is: the bolt is the
+     Llama Group's trademark and is not archamp's to wear.
+
+     The colours go in as one gradient rather than as the sixteen steps
+     VISCOLOR lists, because they are close enough together that even at 256
+     pixels you cannot tell them apart, and the peaks are lifted off
+     VISCOLOR's own grey, which at 22 pixels is a smudge rather than a cap.
+     Every peak sits two rows over its bar, so the box carries two rows of
+     headroom above the analyser's full height and the tallest bar's cap has
+     the same air under it as all the others.
+
+     This is the about window's copy: no tile, because the page draws it on
+     the panel's own background, and the bars are on the title's character
+     grid - JetBrains Mono advances 0.6em, the h1 adds 0.01em of letter
+     spacing, so the pitch is 19.52px at 32px and the glyphs' ink measures
+     14.94px of that cell. One bar lands over each letter of the name. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 136.64 60" width="136.64" height="60">
+  <defs>
+    <linearGradient id="spectrum" x1="0" y1="6.316" x2="0" y2="60.000" gradientUnits="userSpaceOnUse">
+      <stop offset="0.0000" stop-color="#EF3110"/>
+      <stop offset="0.0667" stop-color="#CE2910"/>
+      <stop offset="0.1333" stop-color="#D65A00"/>
+      <stop offset="0.2000" stop-color="#D66600"/>
+      <stop offset="0.2667" stop-color="#D67300"/>
+      <stop offset="0.3333" stop-color="#C67B08"/>
+      <stop offset="0.4000" stop-color="#DEA518"/>
+      <stop offset="0.4667" stop-color="#D6B521"/>
+      <stop offset="0.5333" stop-color="#BDDE29"/>
+      <stop offset="0.6000" stop-color="#94DE21"/>
+      <stop offset="0.6667" stop-color="#29CE10"/>
+      <stop offset="0.7333" stop-color="#32BE10"/>
+      <stop offset="0.8000" stop-color="#39B510"/>
+      <stop offset="0.8667" stop-color="#319C08"/>
+      <stop offset="0.9333" stop-color="#299400"/>
+      <stop offset="1.0000" stop-color="#188408"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <rect x="2.290" y="31.579" width="14.940" height="28.421" fill="url(#spectrum)"/>
+    <rect x="21.810" y="37.895" width="14.940" height="22.105" fill="url(#spectrum)"/>
+    <rect x="41.330" y="6.316" width="14.940" height="53.684" fill="url(#spectrum)"/>
+    <rect x="60.850" y="22.105" width="14.940" height="37.895" fill="url(#spectrum)"/>
+    <rect x="80.370" y="50.526" width="14.940" height="9.474" fill="url(#spectrum)"/>
+    <rect x="99.890" y="37.895" width="14.940" height="22.105" fill="url(#spectrum)"/>
+    <rect x="119.410" y="47.368" width="14.940" height="12.632" fill="url(#spectrum)"/>
+  </g>
+  <g>
+    <rect x="2.290" y="25.263" width="14.940" height="3.158" fill="#E4E7EA"/>
+    <rect x="21.810" y="31.579" width="14.940" height="3.158" fill="#E4E7EA"/>
+    <rect x="41.330" y="0.000" width="14.940" height="3.158" fill="#E4E7EA"/>
+    <rect x="60.850" y="15.789" width="14.940" height="3.158" fill="#E4E7EA"/>
+    <rect x="80.370" y="44.211" width="14.940" height="3.158" fill="#E4E7EA"/>
+    <rect x="99.890" y="31.579" width="14.940" height="3.158" fill="#E4E7EA"/>
+    <rect x="119.410" y="41.053" width="14.940" height="3.158" fill="#E4E7EA"/>
+  </g>
+</svg>

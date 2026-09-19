@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- archamp's mark for small sizes: a system tray draws an icon at about 18
+     pixels, and the full mark's seven bars, peaks and tile close into a blob
+     long before that. This is the same analyser reading with only its first,
+     third and fourth bars kept, no peaks, and no tile - a tray is already a
+     dark bar, and the tile would spend a third of the width drawing one.
+     The bars fill the height, so at 18 pixels each is about five across with
+     two between, which is the most that can be asked of them.
+
+     Everything else about it is the full mark's: the colours are the ones
+     base-2.91.wsz's VISCOLOR.TXT gives Winamp's analyser, as one gradient,
+     and the shape is the same reading, cut down. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="spectrum" x1="0" y1="2.000" x2="0" y2="62.000" gradientUnits="userSpaceOnUse">
+      <stop offset="0.0000" stop-color="#EF3110"/>
+      <stop offset="0.0667" stop-color="#CE2910"/>
+      <stop offset="0.1333" stop-color="#D65A00"/>
+      <stop offset="0.2000" stop-color="#D66600"/>
+      <stop offset="0.2667" stop-color="#D67300"/>
+      <stop offset="0.3333" stop-color="#C67B08"/>
+      <stop offset="0.4000" stop-color="#DEA518"/>
+      <stop offset="0.4667" stop-color="#D6B521"/>
+      <stop offset="0.5333" stop-color="#BDDE29"/>
+      <stop offset="0.6000" stop-color="#94DE21"/>
+      <stop offset="0.6667" stop-color="#29CE10"/>
+      <stop offset="0.7333" stop-color="#32BE10"/>
+      <stop offset="0.8000" stop-color="#39B510"/>
+      <stop offset="0.8667" stop-color="#319C08"/>
+      <stop offset="0.9333" stop-color="#299400"/>
+      <stop offset="1.0000" stop-color="#188408"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <rect x="4.800" y="30.235" width="14.400" height="31.765" fill="url(#spectrum)"/>
+    <rect x="24.800" y="2.000" width="14.400" height="60.000" fill="url(#spectrum)"/>
+    <rect x="44.800" y="19.647" width="14.400" height="42.353" fill="url(#spectrum)"/>
+  </g>
+</svg>

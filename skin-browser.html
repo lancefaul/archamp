@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src museum:"
+    />
+    <title>Choose Skin</title>
+    <style>
+      /* Built from the same components as the player's menus, which are
+         Omarchy's own: PanelHero's title and meta line, PanelSeparator between
+         sections, the shell's popup row height and control inset, and its
+         state fills. Unlike the player, this window is not zoomed, so the
+         shell's own 12px base is used directly. */
+      :root {
+        --rem: 12px;
+        --bg: #14151a;
+        --fg: #e2e2e6;
+        --dim: #a1a1a4;
+        --rule: rgba(226, 226, 230, 0.12);
+        --fill: rgba(226, 226, 230, 0.04);
+        --hover: rgba(226, 226, 230, 0.08);
+        --selected: rgba(226, 226, 230, 0.18);
+        --accent: #7aa2f7;
+        --error: #d05c5c;
+        --border: var(--rule);
+      --inset: calc(var(--rem) * 0.833);
+        --row: calc(var(--rem) * 2.333);
+        --caption: calc(var(--rem) * 0.833);
+        --title: calc(var(--rem) * 1.167);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
+        font-size: var(--rem);
+      }
+      body {
+        display: grid;
+        grid-template-rows: auto auto auto auto 1fr auto auto;
+        overflow: hidden;
+      }
+      hr {
+        height: 1px;
+        margin: 0;
+        border: none;
+        background: var(--rule);
+      }
+      header {
+        padding: calc(var(--rem) * 0.833) var(--inset) calc(var(--rem) * 0.667);
+      }
+      /* The way out, where archamp's other windows put it: a square of the
+         same border and fill as the player's own close button. It does what
+         Cancel does — with an Apply beside it, dismissing means "not that
+         one", and the skin that was on comes back. */
+      #close {
+        position: fixed;
+        top: var(--inset);
+        right: var(--inset);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--row);
+        height: var(--row);
+        padding: 0;
+        background: var(--fill);
+        border: 1px solid var(--rule);
+        color: var(--dim);
+        font: inherit;
+        line-height: 1;
+        cursor: pointer;
+      }
+      #close:hover {
+        background: var(--hover);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      h1 {
+        margin: 0;
+        font-size: var(--title);
+        font-weight: bold;
+      }
+      .meta {
+        margin: calc(var(--rem) * 0.25) 0 0;
+        font-size: var(--caption);
+        font-weight: bold;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+      .search {
+        padding: calc(var(--rem) * 0.5) var(--inset);
+      }
+      #search {
+        width: 100%;
+        height: var(--row);
+        padding: 0 calc(var(--rem) * 0.667);
+        background: #0e0f13;
+        border: 1px solid var(--rule);
+        color: var(--fg);
+        font: inherit;
+        outline: none;
+      }
+      #search:focus {
+        border-color: var(--accent);
+      }
+      #search::placeholder {
+        color: var(--dim);
+      }
+      main {
+        overflow-y: auto;
+        padding: var(--inset);
+        scrollbar-width: thin;
+        scrollbar-color: var(--rule) transparent;
+      }
+      #grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(calc(var(--thumb-width) + var(--rem)), 1fr));
+        gap: calc(var(--rem) * 0.667);
+      }
+      .skin {
+        all: unset;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: calc(var(--rem) * 0.333);
+        padding: calc(var(--rem) * 0.5);
+        border: 1px solid transparent;
+        cursor: pointer;
+      }
+      .skin:hover {
+        background: var(--hover);
+      }
+      .skin:focus-visible {
+        border-color: var(--accent);
+      }
+      /* The skin the player is wearing: accent all round, and a tick by its
+         name, the way a menu marks the choice in effect. */
+      .skin.current {
+        background: var(--selected);
+        border-color: var(--accent);
+        box-shadow: inset 0 0 0 1px var(--accent);
+      }
+      .skin.current .name::before {
+        content: "\f012c\2002";
+        color: var(--accent);
+      }
+      .skin img {
+        width: var(--thumb-width);
+        height: var(--thumb-height);
+        image-rendering: pixelated;
+        background: var(--fill);
+      }
+      .skin.applying img {
+        opacity: 0.5;
+      }
+      .skin .name {
+        max-width: var(--thumb-width);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: var(--caption);
+        color: var(--dim);
+      }
+      .skin.current .name {
+        color: var(--fg);
+      }
+      .skin.failed .name {
+        color: var(--error);
+      }
+      #message,
+      #sentinel {
+        color: var(--dim);
+        font-size: var(--caption);
+        text-align: center;
+      }
+      /* The line, then the way out of it, both down the middle. */
+      #message {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: calc(var(--rem) * 0.833);
+        padding: calc(var(--rem) * 2) 0;
+      }
+      #message[hidden] {
+        display: none;
+      }
+      #sentinel {
+        min-height: calc(var(--rem) * 4);
+        line-height: calc(var(--rem) * 4);
+      }
+      footer {
+        display: flex;
+        gap: calc(var(--rem) * 0.5);
+        padding: calc(var(--rem) * 0.667) var(--inset);
+      }
+      button {
+        height: var(--row);
+        padding: 0 calc(var(--rem) * 1.333);
+        background: var(--fill);
+        border: 1px solid var(--rule);
+        color: var(--fg);
+        font: inherit;
+        cursor: pointer;
+      }
+      button:hover {
+        background: var(--hover);
+      }
+      button.primary {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      button:disabled {
+        color: var(--dim);
+        border-color: var(--rule);
+        cursor: default;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="close" type="button" title="Cancel" aria-label="Cancel">&#xf0156;</button>
+    <header>
+      <h1>Choose Skin</h1>
+      <p class="meta">Powered by the Winamp Skin Museum · skins.webamp.org</p>
+    </header>
+    <hr />
+    <div class="search">
+      <input id="search" type="search" placeholder="Search" aria-label="Search skins" spellcheck="false" autofocus />
+    </div>
+    <hr />
+    <main>
+      <div id="grid"></div>
+      <p id="message" hidden></p>
+      <div id="sentinel"></div>
+    </main>
+    <hr />
+    <footer>
+      <button id="apply" class="primary" type="button">Apply</button>
+      <button id="cancel" type="button">Cancel</button>
+    </footer>
+    <script src="skin-browser.js"></script>
+  </body>
+</html>
