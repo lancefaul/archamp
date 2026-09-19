@@ -219,6 +219,12 @@ Copy that folder to carry them over. The playlist isn't saved anywhere yet.
 
 - Build everything in-house; don't borrow code from similar projects such as
   durasj/webamp-desktop.
+- The AppImage has no version in its filename. Updating is replacing that one
+  file in place, so a versioned name goes stale the first time it happens —
+  1.0.0 on disk, 1.0.2 inside. Keeping the version would mean renaming the
+  file on every update, which moves the path the desktop entry, the launcher
+  and the restart all point at. A stable name costs nothing: the asset matcher
+  looks for `.AppImage`, and About is what knows the version.
 - Deferred: the player window's security settings (`nodeIntegration` on,
   `contextIsolation` off, `webSecurity` off) and a test suite.
 - Scaling in crisp whole-pixel steps; keep the classic D button.

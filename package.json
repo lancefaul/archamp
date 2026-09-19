@@ -1,6 +1,6 @@
 {
   "name": "archamp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A real Winamp, as a native desktop app \u2014 built on the webamp library, wrapped in Electron.",
   "main": "main.js",
   "scripts": {
@@ -32,7 +32,7 @@
   "build": {
     "appId": "com.lancefaul.archamp",
     "productName": "archamp",
-    "artifactName": "archamp-${version}-${arch}.AppImage",
+    "artifactName": "archamp-${arch}.AppImage",
     "files": [
       "*.js",
       "*.html",

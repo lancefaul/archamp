@@ -51,9 +51,14 @@ Download the AppImage from
 and run it:
 
 ```bash
-chmod +x archamp-*-x86_64.AppImage
-./archamp-*-x86_64.AppImage
+chmod +x archamp-x86_64.AppImage
+./archamp-x86_64.AppImage
 ```
+
+The file has no version in its name on purpose: updating is replacing that one
+file in place, and a name that says 1.0.0 on an archamp that is no longer
+1.0.0 is worse than a name that never claimed to know. ARCHAMP → About is what
+knows which version you have.
 
 On first run it offers to add itself to your applications, which writes a
 desktop entry and icon under `~/.local/share`. That entry is what lets a
