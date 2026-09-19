@@ -45,6 +45,18 @@
       html.menu-open #webamp * {
         -webkit-app-region: no-drag;
       }
+      /* Chromium works out where the drag regions are when the elements
+         carrying them change, and a window that has only just been shown has
+         not changed since it was mapped — so the first drag after opening
+         archamp, or after bringing it back from hidden, did nothing. Anything
+         that re-rendered a title bar fixed it, which is why clicking the
+         equalizer first worked: that takes webamp's `selected` class off the
+         main window's title bar, and changing the element is what makes
+         Chromium look again. archamp turns this class on and off after a show
+         to make that change deliberately. See refreshDragRegions. */
+      html.regions-stale #webamp * {
+        -webkit-app-region: no-drag;
+      }
     </style>
   </head>
   <body>

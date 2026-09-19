@@ -109,6 +109,13 @@ icon (WINDOW → Show in tray), or any MPRIS client's "open the player", which i
 `Raise`. `archamp --show` forces one visible launch; `archamp --hidden` one
 hidden.
 
+**Closing to the tray.** With WINDOW → Show in tray on, the player's close
+button puts archamp away rather than ending it, the way it does in anything
+else that lives in a tray — the music carries on. **Close archamp** is the way
+out, in the player's own menu and in the tray's, and the tray has it because
+someone who closed to the tray has no window left to quit from. Without a tray
+icon there is nothing to come back from, so closing still quits.
+
 **Playlists** are M3U files in `Playlists` inside your music folder — the same
 folder OMedia Controls uses, so a list made in either shows up in both. archamp
 follows the plugin's own setting for where that folder is.
@@ -130,17 +137,49 @@ The buttons belong to the version that is running, so they are the ones the
 *old* archamp shipped: an update is what puts the new window in place, and it
 is the update after that which uses it.
 
-## On Hyprland
+## Themes
 
-archamp wants one window rule it cannot set for itself, since a Wayland client
-cannot ask to float:
+archamp's own chrome — its menus, the skin browser, About and the update
+window — follows the desktop's colours where it can find them. It reads
+Omarchy's theme first and otherwise draws its own dark palette. The player
+window itself is the skin's, and is not themed by anything but the skin.
+
+## Window rules
+
+The player window is the shape and size of the skin it is drawing, and it
+changes size whenever the skin or the scale does. Tiled, a compositor
+stretches a transparent, irregularly-shaped window across a slot and the
+player reads as broken rather than as small — so it wants to float.
+
+A Wayland client cannot ask for that; the rule has to come from the
+compositor. On **Hyprland**, archamp asks for it itself at startup, which is
+session-only, writes nothing to your config, and needs nothing from you. On
+any other compositor, set the equivalent rule for the window class `archamp`:
 
 ```lua
-o.window("archamp", { float = true })
+o.window("archamp", { float = true })   -- what archamp asks Hyprland for
 ```
 
-Without it the compositor tiles a transparent skin window into a slot, which
-looks broken.
+## Other desktops — alpha
+
+archamp is developed and used on [Omarchy](https://omarchy.org) under
+Hyprland. Two pieces of it are written for desktops it has not been run on,
+and they ship as alpha: they are verified by mechanism, not on the desktop
+they are for.
+
+**The tray is only offered where the desktop has one.** A tray icon is a
+StatusNotifierItem, and on a stock GNOME there is nothing listening for one —
+Shell has had no support since 3.26, and none without the AppIndicator
+extension — so archamp says so rather than hiding its window behind an icon
+that would never appear. Bringing a hidden window back does not depend on the
+tray: start archamp again from your launcher, or use any MPRIS client's "open
+the player".
+
+**KDE's colour scheme is read where Omarchy's theme files are absent** —
+`~/.config/kdeglobals` for the window colours, the accent and the font size.
+
+If you run archamp on Plasma, GNOME or anything else, reports are welcome;
+treat neither of these as supported yet.
 
 ## Development
 

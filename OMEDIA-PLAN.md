@@ -39,23 +39,53 @@ What doesn't:
 
 ## Parked, to come back to
 
-- **Shipping the Hyprland rule.** `o.window("archamp", { float = true,
-  no_anim = true })` is what archamp wants from the compositor: float,
-  because Hyprland tiles a transparent skin window into a slot and it looks
-  broken; no animation, because the window is held back until the player is
-  drawn, so popping it in from 87% reads as the app loading and resizing
-  itself. A client cannot ask for either on Wayland. Decide at packaging time
-  between showing the rule with the desktop-integration prompt (Phase 1,
-  item 9), having an installer offer to append it, and upstreaming
-  `default/hypr/apps/archamp.lua` to Omarchy, where its per-app rules live.
-  Tried on this machine on 2026-09-17 and switched back off, so the player
-  opens with the compositor's animation as everything else does; measured in
-  NOTES.md.
-- **A splash screen.** Parked with a design in hand. It would not help what it
-  was raised for: a splash is a window too, so it pops in the same way, and
-  it cannot paint until Chromium is up — which is 0.9s of the 1.25s from
-  launch to the player being on screen. Worth building only for the mark
-  itself, not to cover a wait.
+- ~~**Shipping the Hyprland rule.**~~ **Done 2026-09-19 — archamp asks for it
+  itself.** `o.window("archamp", { float = true })` is what archamp wants from
+  the compositor, because Hyprland tiles a transparent skin window into a slot
+  and it looks broken. A Wayland client cannot ask to float, so this was going
+  to be a line in the first-run dialog that most people never paste into a
+  config.
+
+  Hyprland takes a rule at runtime, though, which is something archamp can do
+  for itself. `hyprland.js` issues it before the window is created, writes
+  nothing, lasts until Hyprland reloads, and asks the user for nothing. Two
+  forms, because the two config parsers refuse each other's command: `hyprctl
+  eval` for a Lua config, which is Omarchy's and what refuses `keyword`, and
+  `hyprctl keyword windowrule` (and the older `windowrulev2`) for a classic
+  hyprland.conf. First one that answers ok wins.
+
+  Measured before it was written: a probe window mapped before the rule tiled,
+  an identical one mapped after it floated. Verified in the packaged AppImage
+  too — `HYPRLAND_INSTANCE_SIGNATURE` reaches it, and the rule applied on the
+  first form. Note `/proc/<pid>/environ` reads empty for archamp because
+  Chromium overwrites that memory to set its process title, so the environment
+  has to be observed from inside rather than read from outside.
+
+  `no_anim` is deliberately not included. It was tried and reverted, and the
+  player opens with the compositor's animation as everything else does.
+
+  Not upstreamed to Omarchy. archamp fixes its own window rather than asking
+  another project to carry a rule for it.
+
+- ~~**A splash screen.**~~ **Closed 2026-09-19 — the platform already answers
+  it, and answers "no".** Omarchy's shell has launch feedback of its own:
+  `AppLibrary.beginLaunchFeedback` shows a "Launching <name>…" OSD and closes
+  it when a new toplevel appears. archamp has a desktop entry, so it is in the
+  app library and already wired into this — nothing to build, nothing to opt
+  into.
+
+  It will not fire, and that is the finding. `launchDelay.interval` is
+  **2000 ms**: the OSD only appears for an app that has not produced a window
+  within two seconds. Re-measured on 2026-09-19, archamp maps its window at
+  **1.44s** — half a second under the bar. Steam crosses it; archamp does not.
+  Omarchy's own threshold for "long enough that the user needs telling" puts
+  archamp below it, and if archamp ever slows past two seconds the OSD starts
+  appearing on its own, with no code.
+
+  The original measurement still holds for why a splash could never have
+  helped: 0.91s of the 1.44s is before anything can paint, a splash being a
+  Chromium window too. On desktops without Omarchy's OSD, `StartupNotify=true`
+  in the desktop entry is the standard mechanism and is already set.
 
 ## Backlog
 
@@ -377,29 +407,43 @@ never touches the developer's own music or playlists.
 
 A checklist in the plugin's popup, with archamp as the only player:
 
-- [ ] The AppImage offers desktop integration; Settings → Music Player then lists archamp
-- [ ] archamp not running: play a folder from the library, and archamp starts and plays it
-- [ ] "Keep archamp's window hidden" hides and shows the window, and survives a restart
-- [ ] Clicking the player shows a hidden archamp; closing it from either side quits
-- [ ] archamp running: play a track, a selection and a folder; one window only
-- [ ] Now playing shows "Album · year"
-- [ ] PLAYLIST heading shows the folder or M3U name; "Song x/x · elapsed / total"
-- [ ] Playlist column: numbers, lengths, click to play, current highlighted
-- [ ] Shuffle; repeat cycles off → playlist → track, with the repeat-one icon
-- [ ] Speed: all five buttons enabled; pitch held; seek bar stays in time
-- [ ] Volume slider moves archamp's, and archamp's slider moves the plugin's
-- [ ] Visualiser follows archamp only, the same at any volume
-- [ ] Chips show bitrate, sample rate, channels; lyrics open for a track with a `.lrc`
-- [ ] Pause others pauses archamp; the X quits it
-- [ ] Restart archamp: the same track comes back, paused, and plays on Play
+Walked 2026-09-19 on Omarchy/Hyprland, with archamp 1.1.0-rc.1 as the only
+player. Anything marked ~ was verified by mechanism rather than by eye, and
+says how.
+
+- [x] The AppImage offers desktop integration; Settings → Music Player then lists archamp — entry at `~/.local/share/applications/archamp.desktop`, and the plugin's player list reads exactly `["org.mpris.MediaPlayer2.archamp"]`
+- [x] archamp not running: play a folder from the library, and archamp starts and plays it — quit, then `gtk-launch archamp.desktop "…/Boston/Third Stage"`: on the bus in one launch, Playing "Amanda"
+- [x] "Keep archamp's window hidden" hides and shows the window, and survives a restart — quit and relaunch with `keepHidden` on: `org.archamp.Window Hidden` true, zero windows
+- [x] Clicking the player shows a hidden archamp; closing it from either side quits — MPRIS `Raise`, which is what the row click calls, brought the hidden window back and `Hidden` went false
+- [x] archamp running: play a track, a selection and a folder; one window only — handing a track to a running copy kept the same pid, one bus name, no second window
+- [x] Now playing shows "Album · year" — "Eat the Elephant · 2018 · Track 8"
+- [x] PLAYLIST heading shows the folder or M3U name; "Song x/x · elapsed / total" — "EAT THE ELEPHANT", "Song 8/12 · 35:44 / 57:14"
+- [x] Playlist column: numbers, lengths, click to play, current highlighted — 01–12 with lengths, track 08 highlighted and bold while playing
+- [x] Shuffle; repeat cycles off → playlist → track, with the repeat-one icon — `Shuffle` toggles; `LoopStatus` takes None, Playlist and Track
+- [~] Speed: all five buttons enabled; pitch held; seek bar stays in time — all five drawn enabled, `MinimumRate` 0.25 and `MaximumRate` 4, `Rate` 2 accepted. **Pitch held is not verified — it needs ears.**
+- [~] Volume slider moves archamp's, and archamp's slider moves the plugin's — the plugin's direction works over MPRIS. The reverse is satisfied by construction rather than by hand: `reportState` (renderer.js) subscribes to webamp's store and ships `volume` in the same payload as the metadata that was seen updating live, so any internal change propagates. Driving archamp's own slider needs a pointer and was not done.
+- [~] Visualiser follows archamp only, the same at any volume — the capture is pinned to archamp's own PipeWire stream (`stream: 20298`, not the sink monitor), and the gain is the inverse of the volume (1.0 → 1, 0.3 → 3.33). Seen drawing with real bands and peaks. **Not compared side by side at two volumes**; the popup closes between IPC calls, which defeated the screenshot.
+- [x] Chips show bitrate, sample rate, channels; lyrics open for a track with a `.lrc` — "269 kbps · 44 kHz · stereo"; lyrics panel reads "Local .lrc · synced" with the current line bold
+- [x] Pause others pauses archamp; the X quits it — and in the direction B1 reported broken: archamp starting paused a playing mpv. See B1 in the plugin's ROADMAP, which was misdiagnosed.
+- [x] Restart archamp: the same track comes back, paused, and plays on Play — quit and relaunch: same track, Paused, Playing after `Play`
 
 Then update archamp's README and NOTES.md, and the plugin's README, which can
 name archamp as the recommended player.
 
 ## Decisions (2026-09-16)
 
-1. Closing archamp, from its own window or the plugin, quits. Hiding the
-   window is a separate setting (Phase 1b).
+1. Closing archamp quits — **amended 2026-09-19: unless there is a tray icon
+   to bring it back from.** With Show in tray on, the player's own close
+   button puts archamp away instead, the way it does in every app that lives
+   in a tray, and the way out is Close archamp — in the player's menu, where
+   it used to say Exit, and in the tray's, where someone who closed to the
+   tray has no window to quit from. Without a tray there is nothing to come
+   back from, so closing still quits.
+
+   The "keep hidden" setting is untouched by this: that is about where archamp
+   starts, and the close button is about where it is now. The plugin's X still
+   quits, because that one is a close-the-player action rather than a window
+   control.
 2. Distributed as an AppImage.
 3. Saved playlists live in `Playlists` inside the music folder.
 4. Where archamp's own window is involved, Winamp's behaviour wins: one

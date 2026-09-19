@@ -275,25 +275,26 @@ Copy that folder to carry them over. The playlist isn't saved anywhere yet.
   clients` shows the class):
 
   ```lua
-  -- ~/.config/hypr/hyprland.lua
-  o.window("archamp", { float = true, no_anim = true })
+  o.window("archamp", { float = true })
   ```
 
-  `no_anim` is the second half of the same rule. Hyprland opens a window with
-  `windowsIn popin 87%` over 410ms, and archamp's window is fully drawn the
-  moment it appears (it is held back until then), so the animation scales and
-  fades a finished player — which reads as the app loading and then resizing
-  itself. Filmed at 40ms intervals: with the animation, three frames of a
-  translucent player growing; without it, nothing, then the finished player,
-  between two consecutive frames.
+  **archamp issues this itself at startup** (`hyprland.js`, 1.1.0) rather than
+  asking anyone to paste it into a config. Hyprland takes a rule at runtime
+  over `hyprctl`, so this writes nothing, lasts until Hyprland reloads its
+  config, and needs nothing from the user. Two forms, because the two config
+  parsers refuse each other's command — `eval` for a Lua config, `keyword
+  windowrule` (and the older `windowrulev2`) for a classic hyprland.conf.
+  Measured before it was written: a probe window mapped before the rule tiled,
+  an identical one mapped after floated. The full account is in
+  OMEDIA-PLAN.md.
 
-  A client cannot switch this off for itself on Wayland. The rule has to come
-  from the compositor's config, which leaves three ways to ship it: show it
-  with the desktop-integration prompt (the decision in OMEDIA-PLAN.md, and
-  what the float rule already does), have an installer offer to append it, or
-  upstream `default/hypr/apps/archamp.lua` to Omarchy — which is where
-  Omarchy keeps its own per-app rules (steam.lua, 1password.lua, terminals.lua
-  …), loaded for every user without anyone editing a config.
+  **`no_anim` is not part of it.** It was tried and dropped. Hyprland opens a
+  window with `windowsIn popin 87%` over 410ms, and archamp's window is fully
+  drawn the moment it appears (it is held back until then), so the animation
+  scales and fades a finished player — filmed at 40ms intervals, three frames
+  of a translucent player growing. Suppressing it made archamp the one window
+  on the desktop that does not animate, which is a louder difference than the
+  three frames. It opens like everything else.
 
   **Don't pin a `size` on this rule.** An earlier version of this rule was
   `{ float = true, size = { 420, 700 } }`, which clipped the equalizer and

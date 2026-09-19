@@ -821,9 +821,17 @@ function menuSections(webamp, skinTracker) {
           // Not "run in tray": archamp runs the same either way, and closing
           // it still quits. What this does is put the icon there, and with it
           // a way back to a window that has been hidden.
+          //
+          // Where the desktop has no tray to put it in — a stock GNOME, which
+          // has had no StatusNotifierItem support since Shell 3.26 — the row
+          // says so instead of switching on something that would never
+          // appear. See trayhost.js.
           label: "Show in tray",
-          checked: Boolean(windowStatus?.tray),
-          run: async () => {
+          // No run at all where there is no tray: the row goes inert and says
+          // why, rather than offering a switch that could not do anything.
+          note: windowStatus?.trayHost === false ? "This desktop has no system tray" : undefined,
+          checked: Boolean(windowStatus?.tray) && windowStatus?.trayHost !== false,
+          run: windowStatus?.trayHost === false ? undefined : async () => {
             windowStatus = await ipcRenderer.invoke("run-in-tray", !windowStatus?.tray);
           },
         },
@@ -844,7 +852,9 @@ function menuSections(webamp, skinTracker) {
               },
             ]
           : []),
-        { label: "Exit", run: () => webamp.close() },
+        // Not webamp.close(): that is the player's close button, and with a
+        // tray icon that only puts archamp away. This is the way out.
+        { label: "Close archamp", run: () => ipcRenderer.send("quit-app") },
       ],
     },
   ];
@@ -2051,6 +2061,8 @@ function keepWindowFitted(webamp) {
     onScreen = true;
     scheduleFit();
   });
+  // Every show, including the ones after the first: see refreshDragRegions.
+  ipcRenderer.on("window-reshown", refreshDragRegions);
   webamp.store.subscribe(scheduleFit);
   // Context menus mount directly onto <body>, and their submenus open on hover.
   new MutationObserver(scheduleFit).observe(document.body, { childList: true });
@@ -2073,6 +2085,48 @@ function keepWindowFitted(webamp) {
 // Title bar presses go to the compositor and never reach webamp, but webamp
 // also drags a window by its body, which would slide that one window around
 // inside ours. Swallow those presses so the player only moves as a whole.
+// Make Chromium look at the drag regions again.
+//
+// It recomputes them when the elements carrying them change, and a window that
+// has just been shown has not changed since it was mapped — so the first drag
+// after opening archamp, or after showing it from the tray, did nothing at
+// all. Clicking another window first fixed it, because webamp moves its
+// `selected` class to the window you clicked and that rewrites the title bar
+// this one was trying to drag by.
+//
+// Two frames: the class has to be on for a frame that is actually committed,
+// or the add and the remove collapse into no change and nothing is recomputed.
+function refreshDragRegions() {
+  const html = document.documentElement;
+  html.classList.add("regions-stale");
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => html.classList.remove("regions-stale"));
+  });
+}
+
+// The player's close button, when there is a tray to put archamp in.
+//
+// This has to stop the press before webamp sees it, not react to
+// `webamp.onClose`: by the time that fires webamp has already pulled its own
+// main window out of the page, so hiding instead of disposing leaves an empty
+// window to come back to. Caught on the way down, webamp never closes anything
+// and the player is still there when the tray brings it back.
+//
+// Only with a tray icon. Without one there would be no way back, so the close
+// button keeps meaning what it has always meant.
+function closeToTray() {
+  const swallow = (e) => {
+    const target = e.target instanceof Element ? e.target : null;
+    if (target?.closest("#title-bar #close") == null) return;
+    if (!windowStatus?.tray || windowStatus?.trayHost === false) return;
+    e.stopPropagation();
+    e.preventDefault();
+    ipcRenderer.send("hide-window");
+  };
+  window.addEventListener("mousedown", swallow, true);
+  window.addEventListener("click", swallow, true);
+}
+
 function blockInPageDragging() {
   const block = (e) => {
     const { target } = e;
@@ -2552,6 +2606,7 @@ if (!Webamp.browserIsSupported()) {
     });
 
     blockInPageDragging();
+    closeToTray();
     filterWebampFilePickers();
     closeMenusOnClickAway();
     installSkinBrowserShortcut();

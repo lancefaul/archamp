@@ -158,8 +158,9 @@ async function remove() {
   await refreshDatabase();
 }
 
-// Asked once, the first time an AppImage runs. The Hyprland rule goes in the
-// same breath, since archamp cannot apply it itself (see OMEDIA-PLAN.md).
+// Asked once, the first time an AppImage runs. It used to ask for the Hyprland
+// float rule in the same breath; archamp asks Hyprland for that itself now
+// (hyprland.js), so the dialog is back to the one thing it needs from you.
 async function ask(command) {
   const { response } = await dialog.showMessageBox({
     type: "question",
@@ -167,9 +168,7 @@ async function ask(command) {
     message: "Add archamp to your applications?",
     detail:
       "Writes a desktop entry and icon under ~/.local/share, so archamp shows up in your launcher, can be chosen as your music player, and can be started to play a file.\n\n" +
-      "On Hyprland, archamp also wants this window rule, which it cannot set itself:\n\n" +
-      '    o.window("archamp", { float = true })\n\n' +
-      "Undo the rest any time with: archamp --remove-desktop-integration",
+      "Undo it any time with: archamp --remove-desktop-integration",
     buttons: ["Add", "Not now"],
     defaultId: 0,
     cancelId: 1,

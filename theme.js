@@ -1,15 +1,23 @@
-// The Omarchy theme, for archamp's own chrome: its menus, its drawers and the
-// skin browser. Omarchy keeps the active theme at
-// ~/.local/state/omarchy/current/theme — colors.toml holds the palette every
-// app gets, and shell.toml holds the surfaces its own shell draws with, of
-// which [menu] is exactly what archamp is drawing here. Nothing is required:
-// away from Omarchy, or with a theme that ships neither file, archamp falls
-// back to its own dark palette.
+// The desktop's theme, for archamp's own chrome: its menus, its drawers and
+// the skin browser. Two desktops are read, in order, and neither is required.
+//
+// Omarchy keeps the active theme at ~/.local/state/omarchy/current/theme —
+// colors.toml holds the palette every app gets, and shell.toml holds the
+// surfaces its own shell draws with, of which [menu] is exactly what archamp
+// is drawing here.
+//
+// KDE keeps its colour scheme in ~/.config/kdeglobals, which is the same
+// question answered in INI with "r,g,b" triples. It is read where Omarchy's
+// files are not there, so archamp's chrome follows Plasma rather than sitting
+// in its own dark palette on somebody's light desktop.
+//
+// Away from both, archamp falls back to its own.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
 const THEME_DIR = path.join(os.homedir(), ".local", "state", "omarchy", "current", "theme");
+const KDE_GLOBALS = path.join(os.homedir(), ".config", "kdeglobals");
 
 // archamp's own look, and what every missing key falls back to.
 const FALLBACK = {
@@ -121,11 +129,75 @@ function toRgb(color) {
   return parts.length >= 3 && parts.slice(0, 3).every(Number.isFinite) ? parts.slice(0, 3) : null;
 }
 
+// Enough INI for kdeglobals: the same shape as the TOML above, so it goes
+// through the same parser. What differs is the values — KDE writes colours as
+// "r,g,b" rather than as hex.
+function kdeColor(value) {
+  const parts = String(value ?? "").split(",").map((part) => Number(part.trim()));
+  if (parts.length < 3 || !parts.slice(0, 3).every((n) => Number.isFinite(n) && n >= 0 && n <= 255)) return null;
+  return `#${parts.slice(0, 3).map((n) => Math.round(n).toString(16).padStart(2, "0")).join("")}`;
+}
+
+// KDE's font line is "Family,size,..." with the size in points; archamp's
+// chrome is sized in pixels, which at the 96dpi CSS reference is points times
+// 4/3.
+function kdeFontBase(value) {
+  const points = Number(String(value ?? "").split(",")[1]);
+  if (!Number.isFinite(points) || points <= 0) return null;
+  return Math.round(points * (96 / 72));
+}
+
+// Plasma's colour scheme, as the keys archamp's own reader wants. Null where
+// there is no kdeglobals to read, so Omarchy stays the first answer and this
+// the second.
+function readKde() {
+  let ini;
+  try {
+    ini = parseToml(fs.readFileSync(KDE_GLOBALS, "utf8"));
+  } catch {
+    return null;
+  }
+  const window = ini["Colors:Window"] ?? {};
+  const selection = ini["Colors:Selection"] ?? {};
+  const general = ini.General ?? {};
+  const background = kdeColor(window.BackgroundNormal);
+  const text = kdeColor(window.ForegroundNormal);
+  if (background == null || text == null) return null;
+  return {
+    background,
+    text,
+    // AccentColor is what Plasma's own settings page calls it; the selection
+    // background is what it was before that page existed.
+    accent: kdeColor(general.AccentColor) ?? kdeColor(selection.BackgroundNormal),
+    fontBase: kdeFontBase(general.font),
+  };
+}
+
 // The palette archamp draws its own chrome with. Every value falls back on
 // its own, so a theme missing a key still themes everything else.
 function readTheme() {
   const colors = readFile("colors.toml")?.[""] ?? {};
   const shell = readFile("shell.toml") ?? {};
+  // Only where Omarchy has said nothing: its two files are the richer answer,
+  // and a machine with both is an Omarchy machine.
+  const kde = Object.keys(colors).length === 0 && Object.keys(shell).length === 0 ? readKde() : null;
+  if (kde != null) {
+    const background = kde.background;
+    const text = kde.text;
+    const accent = kde.accent ?? FALLBACK.accent;
+    return {
+      background,
+      text,
+      accent,
+      border: tint(text, 0.12) ?? FALLBACK.rule,
+      rule: tint(text, 0.12) ?? FALLBACK.rule,
+      fill: tint(text, 0.04) ?? FALLBACK.fill,
+      hover: tint(text, 0.08) ?? FALLBACK.hover,
+      selected: tint(text, 0.18) ?? FALLBACK.selected,
+      dim: dimmed(text, background) ?? FALLBACK.dim,
+      fontBase: kde.fontBase ?? FALLBACK.fontBase,
+    };
+  }
   const menu = shell.menu ?? {};
   const base = colors.background ?? FALLBACK.background;
 
@@ -158,7 +230,7 @@ function readTheme() {
 // edited in place shows up as a change to its own files.
 function watchTheme(onChange) {
   const debounced = debounce(() => onChange(readTheme()), 150);
-  for (const directory of [path.dirname(THEME_DIR), THEME_DIR]) {
+  for (const directory of [path.dirname(THEME_DIR), THEME_DIR, path.dirname(KDE_GLOBALS)]) {
     try {
       fs.watch(directory, { persistent: false }, debounced);
     } catch {}
@@ -173,4 +245,4 @@ function debounce(run, wait) {
   };
 }
 
-module.exports = { readTheme, watchTheme };
+module.exports = { readTheme, watchTheme, readKde, kdeColor, kdeFontBase };

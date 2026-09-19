@@ -10,6 +10,8 @@ const desktop = require("./desktop");
 const settings = require("./settings");
 const updater = require("./updater");
 const restart = require("./restart");
+const trayhost = require("./trayhost");
+const hyprland = require("./hyprland");
 
 // Undoing the desktop entry is the only thing archamp does without starting:
 // it is what an uninstall looks like for an AppImage, which is a file the
@@ -116,13 +118,33 @@ function showWindow() {
   if (win == null) return;
   if (win.isMinimized()) win.restore();
   win.show();
+  // Every show, first or not: a window that has just been mapped has not
+  // changed since Chromium last worked out where its drag regions are, so the
+  // first press on a title bar went nowhere. See refreshDragRegions in
+  // renderer.js.
+  win.webContents.send("window-reshown");
   if (everShown) return;
   everShown = true;
   // Only now can the page measure itself for real (see keepWindowFitted).
   win.webContents.send("window-shown");
 }
 
-const windowStatus = () => ({ hidden, keepHidden: settings.keepHidden(), tray: settings.tray() });
+// Whether this desktop has anywhere to put a tray icon (see trayhost.js).
+// Asked once at startup and again whenever the answer would be acted on, since
+// a tray host can be turned on — a GNOME extension enabled — while archamp is
+// running.
+let trayHost = false;
+async function checkTrayHost() {
+  trayHost = await trayhost.trayHostAvailable();
+  return trayHost;
+}
+
+const windowStatus = () => ({
+  hidden,
+  keepHidden: settings.keepHidden(),
+  tray: settings.tray(),
+  trayHost,
+});
 
 // A tray icon, for the desktops that have one: the fourth way to a hidden
 // window, and the only one that is there whether or not the player is hidden.
@@ -135,7 +157,22 @@ function showFromTray() {
 }
 
 function updateTray() {
-  if (settings.tray() === (trayIcon != null)) return;
+  // Nowhere to put it: Electron's Tray succeeds anyway and draws nothing, so
+  // asking first is the only way not to promise an icon that never appears.
+  //
+  // Wanted but no host known: ask, and come back if the answer is yes. The
+  // answer starts out no — the question takes a round trip to the bus — so
+  // anything that turns the tray on before that has come back would otherwise
+  // be told there is nowhere to put it. It also picks up a host that appeared
+  // since, which is what enabling GNOME's AppIndicator extension looks like
+  // from here.
+  if (settings.tray() && !trayHost) {
+    checkTrayHost().then((hosted) => {
+      if (hosted) updateTray();
+    });
+  }
+  const wanted = settings.tray() && trayHost;
+  if (wanted === (trayIcon != null)) return;
   if (trayIcon != null) {
     trayIcon.destroy();
     trayIcon = null;
@@ -149,7 +186,16 @@ function updateTray() {
     .resize({ width: 128, height: 128 });
   trayIcon = new Tray(icon);
   trayIcon.setToolTip("archamp");
-  trayIcon.setContextMenu(Menu.buildFromTemplate([{ label: "Show archamp", click: showFromTray }]));
+  trayIcon.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "Show archamp", click: showFromTray },
+      { type: "separator" },
+      // With a tray icon, closing the player's own window only puts it away.
+      // This is the way out, and it has to be here: someone who closed the
+      // window to the tray has no window to quit from.
+      { label: "Close archamp", click: () => app.quit() },
+    ]),
+  );
   // Where a click on the icon is reported at all, it does the same thing.
   trayIcon.on("click", showFromTray);
 }
@@ -572,7 +618,18 @@ function aboutIcon() {
 // archamp's own menu offers the same choice as the plugin's switch, so it
 // works the same way without the plugin.
 ipcMain.handle("window-status", () => windowStatus());
-ipcMain.handle("run-in-tray", (_event, value) => {
+// The player's close button, when there is a tray to put it in: puts archamp
+// away for now without touching the "keep hidden" setting, which is about
+// where it starts rather than where it is.
+ipcMain.on("hide-window", () => setHidden(true));
+// The one way out that is always a way out: the menu's Close archamp, and the
+// tray's. Closing the window is no longer it (see the close button above).
+ipcMain.on("quit-app", () => app.quit());
+ipcMain.handle("run-in-tray", async (_event, value) => {
+  // Asked again here rather than trusted from startup: enabling GNOME's
+  // AppIndicator extension is exactly the thing someone does between opening
+  // archamp and reaching for this switch.
+  if (value) await checkTrayHost();
   settings.setTray(value);
   updateTray();
   announceWindow();
@@ -588,9 +645,13 @@ ipcMain.handle("keep-hidden", async (_event, value) => {
       message: "Keep archamp's window hidden?",
       detail:
         "archamp keeps playing with no window: the audio, the media keys and OMedia Controls all carry on.\n\n" +
-        (settings.tray()
+        (settings.tray() && trayHost
           ? "To bring the window back, use Show archamp in the system tray, start archamp again from your launcher, or use OMedia Controls, which has the same switch."
-          : "To bring the window back, start archamp again from your launcher — or from OMedia Controls, which has the same switch. Show in tray puts it a click away."),
+          : trayHost
+            ? "To bring the window back, start archamp again from your launcher — or from OMedia Controls, which has the same switch. Show in tray puts it a click away."
+            // Nothing on this desktop is listening for tray icons, so there is
+            // no point sending anyone to look for one.
+            : "To bring the window back, start archamp again from your launcher — or from OMedia Controls, which has the same switch."),
       buttons: ["Hide", "Cancel"],
       defaultId: 0,
       cancelId: 1,
@@ -660,7 +721,11 @@ app.on("second-instance", async (_event, argv) => {
   win.focus();
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Before the window exists, because a window rule applies when a window is
+  // mapped and not retroactively. It costs a few milliseconds of a launch that
+  // takes about a second and a half, and does nothing off Hyprland.
+  await hyprland.floatWindow();
   watchTheme((next) => {
     theme = next;
     sendTheme();
