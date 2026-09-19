@@ -9,6 +9,7 @@ const { startMpris, tracksForUri, tracksForUris, writeEmbeddedArt, playlistOpene
 const desktop = require("./desktop");
 const settings = require("./settings");
 const updater = require("./updater");
+const restart = require("./restart");
 
 // Undoing the desktop entry is the only thing archamp does without starting:
 // it is what an uninstall looks like for an AppImage, which is a file the
@@ -491,6 +492,18 @@ ipcMain.on("update:copy", (_event, text) => {
   if (typeof text === "string" && text !== "") clipboard.writeText(text);
 });
 ipcMain.on("update:close", () => updateWindow?.close());
+// Restarting into what the update just wrote starts the AppImage, not this
+// process's own executable: inside an AppImage that is a binary on a mount
+// that goes away when the process does, so relaunching it would either fail or
+// bring back the very version that was replaced. APPIMAGE is the file the
+// command wrote to. The waiting for this process to go is done outside it —
+// see updater.js, which explains why Electron's own relaunch cannot be used.
+ipcMain.on("update:restart", () => {
+  const appImage = process.env.APPIMAGE;
+  if (appImage) restart.scheduleRestart(process.pid, appImage);
+  else app.relaunch();
+  app.quit();
+});
 
 // The about box: a window of its own, like the skin browser and the update
 // window, rather than a drawer in the player.

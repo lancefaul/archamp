@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("updater", {
   // The release this window was opened for: { installed, release, command }.
   release: () => ipcRenderer.invoke("update:release"),
   run: () => ipcRenderer.invoke("update:run"),
+  restart: () => ipcRenderer.send("update:restart"),
   copy: (text) => ipcRenderer.send("update:copy", text),
   close: () => ipcRenderer.send("update:close"),
   // The desktop's theme, and any change to it (see theme.js).

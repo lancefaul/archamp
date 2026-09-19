@@ -79,7 +79,7 @@ function runUpdate(command) {
     shell.on("error", (error) => resolve({ ok: false, message: error.message }));
     shell.on("close", (code) => {
       if (code === 0) {
-        resolve({ ok: true, message: "Updated. Restart archamp to run the new version." });
+        resolve({ ok: true, message: "Updated. Restart to run the new version." });
         return;
       }
       const tail = errors.trim().split("\n").slice(-3).join("\n");

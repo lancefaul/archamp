@@ -1,11 +1,11 @@
 {
   "name": "archamp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A real Winamp, as a native desktop app \u2014 built on the webamp library, wrapped in Electron.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test --test-timeout=180000 test/releases.test.mjs test/mpris-conformance.mjs",
+    "test": "node --test --test-timeout=180000 test/releases.test.mjs test/restart.test.mjs test/mpris-conformance.mjs",
     "dist": "electron-builder --linux AppImage"
   },
   "keywords": [

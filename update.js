@@ -12,6 +12,9 @@ const update = document.getElementById("update");
 const cancel = document.getElementById("cancel");
 
 let running = false;
+// Set once the command has run and come back clean: the primary button stops
+// being the way to install and becomes the way to start what was installed.
+let updated = false;
 
 // The desktop's theme, applied to the same custom properties the page is
 // written against, so a theme change is a handful of assignments.
@@ -140,6 +143,13 @@ copy.addEventListener("click", () => {
 });
 
 update.addEventListener("click", async () => {
+  // The same button, once the new version is on disk. archamp goes down and
+  // comes back up on it; the playlist, the track and where it had got to are
+  // in the saved session, so it comes back where it was.
+  if (updated) {
+    window.updater.restart();
+    return;
+  }
   if (running) return;
   running = true;
   update.disabled = true;
@@ -149,8 +159,10 @@ update.addEventListener("click", async () => {
   running = false;
   showResult(outcome.message, !outcome.ok);
   if (outcome.ok) {
-    update.textContent = "Updated";
-    cancel.textContent = "Close";
+    updated = true;
+    update.textContent = "Restart";
+    update.disabled = false;
+    cancel.textContent = "Later";
     return;
   }
   update.disabled = false;
@@ -160,6 +172,7 @@ update.addEventListener("click", async () => {
 cancel.addEventListener("click", () => window.updater.close());
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !running) window.updater.close();
+  if (event.key === "Enter" && updated) window.updater.restart();
 });
 
 load();

@@ -116,6 +116,11 @@ will run before it runs it: you can read it, copy it into a terminal, or press
 Update. It downloads beside the current file and moves over it, so a failed
 download can't leave half an archamp where a working one was.
 
+When it lands, Update becomes Restart. archamp goes down and comes back up on
+the new version, with the playlist, the track and where it had got to all as
+you left them — or press Later and it will be the new one next time you start
+archamp yourself.
+
 ## On Hyprland
 
 archamp wants one window rule it cannot set for itself, since a Wayland client
