@@ -1,6 +1,6 @@
 {
   "name": "archamp",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "description": "A real Winamp, as a native desktop app \u2014 built on the webamp library, wrapped in Electron.",
   "main": "main.js",
   "scripts": {

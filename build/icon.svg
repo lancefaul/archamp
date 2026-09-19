@@ -1,27 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- archamp's mark: seven bars of the spectrum analyser the player draws, one
-     for each letter of its name, in the colours base-2.91.wsz's VISCOLOR.TXT
-     gives it - green at the floor through yellow to red at the top - each
-     under the peak that fell from where it reached.
+<!-- archamp's app icon: three bars of the spectrum analyser the player draws,
+     in the colours base-2.91.wsz's VISCOLOR.TXT gives it - green at the floor
+     through yellow to red at the top.
 
      It is what archamp draws, not what Winamp's logo is: the bolt is the
      Llama Group's trademark and is not archamp's to wear.
 
-     The colours go in as one gradient rather than as the sixteen steps
-     VISCOLOR lists, because they are close enough together that even at 256
-     pixels you cannot tell them apart, and the peaks are lifted off
-     VISCOLOR's own grey, which at 22 pixels is a smudge rather than a cap.
-     Every peak sits two rows over its bar, so the box carries two rows of
-     headroom above the analyser's full height and the tallest bar's cap has
-     the same air under it as all the others.
-
-     This is the app icon. Its bars are a little narrower against their gaps
-     than icon-bare.svg's, because the letter proportions close up into one
-     mound once the icon is drawn at 22 pixels. -->
+     Three rather than the seven of the about window's mark, because this is
+     the icon a launcher, a switcher or a dock draws, and none of them draw it
+     anywhere near the size that seven bars need. build/icon-bare.svg is the
+     full reading, for the one place there is room for it; build/icon-tray.svg
+     is this one again without the tile, for a system tray, which is already a
+     dark bar and does not want a second one drawn on it. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <rect width="256" height="256" rx="56" fill="#16181d"/>
   <defs>
-    <linearGradient id="spectrum" x1="0" y1="58.526" x2="0" y2="216.000" gradientUnits="userSpaceOnUse">
+    <linearGradient id="spectrum" x1="0.000" y1="30.000" x2="0.000" y2="226.000" gradientUnits="userSpaceOnUse">
       <stop offset="0.0000" stop-color="#EF3110"/>
       <stop offset="0.0667" stop-color="#CE2910"/>
       <stop offset="0.1333" stop-color="#D65A00"/>
@@ -41,21 +35,8 @@
     </linearGradient>
   </defs>
   <g>
-    <rect x="44.777" y="132.632" width="15.589" height="83.368" fill="url(#spectrum)"/>
-    <rect x="69.920" y="151.158" width="15.589" height="64.842" fill="url(#spectrum)"/>
-    <rect x="95.063" y="58.526" width="15.589" height="157.474" fill="url(#spectrum)"/>
-    <rect x="120.206" y="104.842" width="15.589" height="111.158" fill="url(#spectrum)"/>
-    <rect x="145.349" y="188.211" width="15.589" height="27.789" fill="url(#spectrum)"/>
-    <rect x="170.491" y="151.158" width="15.589" height="64.842" fill="url(#spectrum)"/>
-    <rect x="195.634" y="178.947" width="15.589" height="37.053" fill="url(#spectrum)"/>
-  </g>
-  <g>
-    <rect x="44.777" y="114.105" width="15.589" height="9.263" fill="#E4E7EA"/>
-    <rect x="69.920" y="132.632" width="15.589" height="9.263" fill="#E4E7EA"/>
-    <rect x="95.063" y="40.000" width="15.589" height="9.263" fill="#E4E7EA"/>
-    <rect x="120.206" y="86.316" width="15.589" height="9.263" fill="#E4E7EA"/>
-    <rect x="145.349" y="169.684" width="15.589" height="9.263" fill="#E4E7EA"/>
-    <rect x="170.491" y="132.632" width="15.589" height="9.263" fill="#E4E7EA"/>
-    <rect x="195.634" y="160.421" width="15.589" height="9.263" fill="#E4E7EA"/>
+    <rect x="38.493" y="122.235" width="48.347" height="103.765" fill="url(#spectrum)"/>
+    <rect x="103.827" y="30.000" width="48.347" height="196.000" fill="url(#spectrum)"/>
+    <rect x="169.160" y="87.647" width="48.347" height="138.353" fill="url(#spectrum)"/>
   </g>
 </svg>

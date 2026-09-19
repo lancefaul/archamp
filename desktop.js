@@ -106,20 +106,48 @@ function refreshDatabase() {
   });
 }
 
-async function write(command) {
-  await fs.mkdir(applicationsDir(), { recursive: true });
-  await fs.writeFile(entryPath(), entryText(command));
-  for (const [size, source] of [
-    ["256x256", "icon.png"],
-    ["scalable", "icon.svg"],
-  ]) {
+const ICONS = [
+  ["256x256", "icon.png"],
+  ["scalable", "icon.svg"],
+];
+
+async function writeIcons() {
+  let wrote = false;
+  for (const [size, source] of ICONS) {
     try {
       await fs.mkdir(path.dirname(iconPath(size)), { recursive: true });
       await fs.copyFile(path.join(__dirname, "build", source), iconPath(size));
       // Copied out of the asar, where the mode is the packer's business.
       await fs.chmod(iconPath(size), 0o644);
+      wrote = true;
     } catch {}
   }
+  return wrote;
+}
+
+// Whether what is installed is still what this archamp ships. A new version
+// can change the artwork, and the entry it is named by does not change with
+// it, so nothing else would ever notice.
+async function iconsAreStale() {
+  for (const [size, source] of ICONS) {
+    try {
+      const [mine, theirs] = await Promise.all([
+        fs.readFile(path.join(__dirname, "build", source)),
+        fs.readFile(iconPath(size)),
+      ]);
+      if (!mine.equals(theirs)) return true;
+    } catch {
+      // Missing, unreadable: writing it again is the answer either way.
+      return true;
+    }
+  }
+  return false;
+}
+
+async function write(command) {
+  await fs.mkdir(applicationsDir(), { recursive: true });
+  await fs.writeFile(entryPath(), entryText(command));
+  await writeIcons();
   await refreshDatabase();
 }
 
@@ -169,7 +197,17 @@ async function integrate() {
   if (existing != null) {
     // The AppImage has been moved or replaced: an entry pointing at a file
     // that is gone is worse than no entry at all.
-    if (!existing.includes(`Exec=${command} `)) await write(command);
+    if (!existing.includes(`Exec=${command} `)) {
+      await write(command);
+      return;
+    }
+    // The entry is current but the artwork may not be: an update replaces the
+    // AppImage in place, so the path it is launched by is the one thing that
+    // does not change when everything else about archamp has.
+    if (await iconsAreStale()) {
+      await writeIcons();
+      await refreshDatabase();
+    }
     return;
   }
   if (await asked()) return;
