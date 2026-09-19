@@ -116,10 +116,14 @@ will run before it runs it: you can read it, copy it into a terminal, or press
 Update. It downloads beside the current file and moves over it, so a failed
 download can't leave half an archamp where a working one was.
 
-When it lands, Update becomes Restart. archamp goes down and comes back up on
-the new version, with the playlist, the track and where it had got to all as
-you left them — or press Later and it will be the new one next time you start
-archamp yourself.
+When it lands, Update becomes Restart and Cancel becomes Restart Later.
+archamp goes down and comes back up on the new version, with the playlist, the
+track and where it had got to all as you left them — or leave it, and it will
+be the new one next time you start archamp yourself.
+
+The buttons belong to the version that is running, so they are the ones the
+*old* archamp shipped: an update is what puts the new window in place, and it
+is the update after that which uses it.
 
 ## On Hyprland
 

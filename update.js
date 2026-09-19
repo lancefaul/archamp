@@ -162,7 +162,7 @@ update.addEventListener("click", async () => {
     updated = true;
     update.textContent = "Restart";
     update.disabled = false;
-    cancel.textContent = "Later";
+    cancel.textContent = "Restart Later";
     return;
   }
   update.disabled = false;
