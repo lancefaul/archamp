@@ -2,6 +2,7 @@ const { ipcRenderer, webFrame } = require("electron");
 const { pathToFileURL, fileURLToPath } = require("url");
 const path = require("path");
 const fs = require("fs/promises");
+const { watchAudioOutput } = require("./audio-output");
 const webampModule = require("webamp");
 const Webamp = webampModule.default || webampModule;
 
@@ -2187,6 +2188,43 @@ function stopWhenNothingToSkipTo(store) {
     action.type === "IS_STOPPED" ? store.dispatch({ type: "STOP" }) : next(action);
 }
 
+// Something webamp keeps on its media object: the <audio> element it plays
+// through, or the AudioContext it routes it into. Looked for rather than
+// reached for, since it is webamp's business where it keeps them.
+function findInWebampMedia(webamp, type) {
+  const search = (object, depth) => {
+    if (object == null || typeof object !== "object" || depth > 3) return null;
+    for (const key of Object.keys(object)) {
+      let value;
+      try {
+        value = object[key];
+      } catch {
+        continue;
+      }
+      if (value instanceof type) return value;
+      const found = search(value, depth + 1);
+      if (found != null) return found;
+    }
+    return null;
+  };
+  return search(webamp?.media, 0);
+}
+
+// Brings the sound back by itself when the outputs it was playing to go away
+// and come back, or the audio server restarts (see audio-output.js).
+function keepSoundOnAnOutput(webamp) {
+  const context = findInWebampMedia(webamp, AudioContext);
+  if (context == null) return;
+  watchAudioOutput({
+    context,
+    listOutputs: async () =>
+      (await navigator.mediaDevices.enumerateDevices())
+        .filter((device) => device.kind === "audiooutput")
+        .map((device) => device.deviceId),
+    restartAudioService: () => ipcRenderer.send("audio:restart-service"),
+  });
+}
+
 const MPRIS_STATUS = { PLAYING: "Playing", PAUSED: "Paused" };
 
 // Reports the player's state to archamp's MPRIS player in the main process
@@ -2204,26 +2242,8 @@ function createMprisBridge() {
   // remembers what it set.
   let rate = 1;
   let loopTrack = false;
-  const audioElement = () => {
-    // webamp.media._source._audio today; looked for rather than reached for,
-    // since it is webamp's business where it keeps it.
-    const search = (object, depth) => {
-      if (object == null || typeof object !== "object" || depth > 3) return null;
-      for (const key of Object.keys(object)) {
-        let value;
-        try {
-          value = object[key];
-        } catch {
-          continue;
-        }
-        if (value instanceof HTMLAudioElement) return value;
-        const found = search(value, depth + 1);
-        if (found != null) return found;
-      }
-      return null;
-    };
-    return search(webamp?.media, 0);
-  };
+  // webamp.media._source._audio today.
+  const audioElement = () => findInWebampMedia(webamp, HTMLAudioElement);
   const status = () => webamp.getMediaStatus();
   const commands = {
     play: () => {
@@ -2630,6 +2650,7 @@ if (!Webamp.browserIsSupported()) {
     // replace the session rather than being added to it.
     if (!(await ipcRenderer.invoke("startup-files"))) await restoreSession(webamp);
     watchSession(webamp);
+    keepSoundOnAnOutput(webamp);
     skinTracker.announce();
     mpris.connect(webamp);
     await webamp.renderWhenReady(document.getElementById("app"));

@@ -215,6 +215,52 @@ Copy that folder to carry them over. The playlist isn't saved anywhere yet.
 - Code: `mpris.js` (main process, via dbus-native); `createMprisBridge` and
   `stopWhenNothingToSkipTo` in `renderer.js`.
 
+### Sound that survives the outputs going away
+
+- archamp keeps its sound on a real output by itself: when every output
+  disappears and one comes back, when it starts with no output at all, and
+  when PipeWire restarts. Within a second or two of an output being there,
+  the music carries on at the same track and position.
+- What breaks is not the `<audio>` element but webamp's AudioContext, which
+  the element plays into, and below it Chromium's audio service process.
+  Measured on PipeWire 1.6.8 with Electron 44 (Chromium 152), recording the
+  stream itself with `parec --monitor-stream` rather than trusting its state:
+  - **Started with no output**, the context is given a fake output, a timer
+    that plays into nothing. It says "running", the time moves, there is no
+    stream in PipeWire at all, and nothing replaces it when a speaker appears.
+  - **PipeWire restarting** fires `error` on the context and suspends it. And
+    the audio service keeps one connection of its own to the server, for
+    listing devices and finding the default, which never reconnects:
+    `enumerateDevices()` comes back empty with speakers on, `setSinkId`
+    answers "device not found", and every output it opens from then on is
+    the fake one — the time moves, in silence.
+  - **An output vanishing** can do either, depending on the gap: sometimes
+    the stream is just held until a sink appears (and plays on fine),
+    sometimes the context errors and suspends.
+- `navigator.mediaDevices`' `devicechange` never fires for any of this: on
+  Linux Chromium takes it from udev, and a sink appearing is not a udev event.
+- So `audio-output.js` looks at the list of outputs once a second
+  (`enumerateDevices`, about a millisecond), and listens for the context's
+  `error`. When an output appears that wasn't there, or after an error, it
+  moves the context between the sink ids `""` and `"default"` — both the
+  server's default, so PipeWire still decides where the stream goes — which
+  makes Chromium open a new output for the same graph, then resumes it. The
+  equalizer, the visualizer, the speed and MPRIS are untouched by it; it is
+  the same context and the same nodes.
+- After an error with no outputs listed, the service may be the one that has
+  lost the server, so the main process ends it (`audio:restart-service`, by
+  its pid from `app.getAppMetrics()`) and Chromium starts a fresh one the next
+  time the page asks. A service started while the server is still down is no
+  better, so it is tried again after 2s, 4s, 8s, then every 10s, until outputs
+  are listed again. Without any output at all after an error, that keeps
+  going every 10s.
+- A device appearing reopens the output even when nothing was wrong (a
+  headset switched on, say), which is one short break in the sound.
+- Code: `audio-output.js`, `keepSoundOnAnOutput` and `findInWebampMedia` in
+  `renderer.js`, `audio:restart-service` in `main.js`;
+  `test/audio-output.test.mjs`. It leans on webamp's private AudioContext,
+  found the way the audio element is.
+
 ## Decisions you made
 
 - Build everything in-house; don't borrow code from similar projects such as
@@ -376,8 +422,9 @@ asynchronously from it, or it deadlocks waiting on itself.
   Actions it watches for: `IS_STOPPED`, `LOADED`, `SEEK_TO_PERCENT_COMPLETE`,
   `SET_SKIN_DATA` and `UPDATE_TIME_ELAPSED`. The shape of
   `store.getState().equalizer`, `.playlist`, `.tracks` and `.media`. The
-  private `__customMiddlewares` option, and the audio element reached through
-  `webamp.media`, which playback speed and repeat-one both set properties on.
+  private `__customMiddlewares` option, the audio element reached through
+  `webamp.media`, which playback speed and repeat-one both set properties on,
+  and the AudioContext beside it, whose output `audio-output.js` reopens.
 - `main.js` uses the deprecated `console-message` arguments, so Electron prints a
   warning at startup.
 

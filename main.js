@@ -625,6 +625,20 @@ ipcMain.on("hide-window", () => setHidden(true));
 // The one way out that is always a way out: the menu's Close archamp, and the
 // tray's. Closing the window is no longer it (see the close button above).
 ipcMain.on("quit-app", () => app.quit());
+// Chromium's audio service loses the audio server for good when the server
+// restarts (see audio-output.js). Ended, it is started afresh the next time
+// the player asks it for anything.
+ipcMain.on("audio:restart-service", () => {
+  for (const metric of app.getAppMetrics()) {
+    if (metric.serviceName !== "audio.mojom.AudioService") continue;
+    console.log(`[archamp] restarting the audio service (pid ${metric.pid})`);
+    try {
+      process.kill(metric.pid);
+    } catch {
+      // Already gone.
+    }
+  }
+});
 ipcMain.handle("run-in-tray", async (_event, value) => {
   // Asked again here rather than trusted from startup: enabling GNOME's
   // AppIndicator extension is exactly the thing someone does between opening
